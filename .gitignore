@@ -20,4 +20,4 @@ lib/python_phpBB_scraper
 .DS_store
 
 #Crawl data
-crawls/*
+crawls/*.*
