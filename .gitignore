@@ -1,6 +1,10 @@
-# Eclipse Project Files
+# Project Files
 .pydevproject
 .project
+*.sublime-*
+
+# OS X stuff
+.DS_Store
 
 # Compiled python files
 *.pyc
@@ -8,16 +12,12 @@
 #Scraped stuff
 scraped/*.db
 
-#Example project
-lib/python_phpBB_scraper
-
 #Sublime stuff
 *.sublime-*
 
 #Backup
 .bak
 
-.DS_store
-
 #Crawl data
 crawls/*
+!crawls/.gitkeep
