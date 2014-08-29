@@ -21,11 +21,19 @@ ITEM_PIPELINES = {
 }
 
 #Sql alchemy database config
+# DATABASE = {
+# 	'drivername' : 'sqlite',
+# 	'username' : None,
+# 	'password' : None,
+# 	'host' : None,
+# 	'port' : None,
+# 	'database' : 'scraped/forums.db'
+# }
 DATABASE = {
-	'drivername' : 'sqlite',
-	'username' : None,
-	'password' : None,
-	'host' : None,
-	'port' : None,
-	'database' : 'scraped/forums.db'
+	'drivername' : 'mysql',
+	'username' : 'root',
+	'password' : 'tot48rom',
+	'host' : 'localhost',
+	'port' : '3306',
+	'database' : 'frapy'
 }

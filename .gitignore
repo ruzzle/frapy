@@ -10,7 +10,8 @@
 *.pyc
 
 #Scraped stuff
-scraped/*.db
+scraped/*
+!scraped/.gitkeep
 
 #Sublime stuff
 *.sublime-*
