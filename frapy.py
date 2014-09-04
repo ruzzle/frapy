@@ -21,8 +21,11 @@ def main():
     #config = Config(file('example.cfg'))
     #print config
     # Start scrapy with some arguments!
-    cmd = 'scrapy crawl -L INFO -a template=phpbb3.0.x.test -a url=http://forum.qnap.com generic -s JOBDIR=crawls/generic-1'
-    execute(cmd.split())
+    #try:
+        cmd = 'scrapy crawl -L INFO -a config=qnap generic -s JOBDIR=crawls/generic-1'
+        execute(cmd.split())
+    #except Exception as e:
+    #    print e.message
     
 
 def test():
@@ -31,11 +34,11 @@ def test():
     except OSError:
         pass
     
-    #cmd = 'scrapy crawl -L INFO -a template=phpbb3 -a url=http://www.raspberrypi.org/phpBB3 generic'
-    #cmd = 'scrapy crawl -L INFO -a template=phpbb3.0.x -a url=http://forum.qnap.com generic -s JOBDIR=crawls/generic-1'
-    #cmd = 'scrapy crawl -L INFO -a template=phpbb3.0.x -a url=http://forum.qnap.com generic'
-    #cmd = 'scrapy crawl -L DEBUG -a template=phpbb3.0.x.test -a url=http://forum.qnap.com generic'
-    cmd = 'scrapy crawl -L INFO -a template=phpbb3.0.x.test -a url=http://forum.qnap.com generic'
+    #cmd = 'scrapy crawl -L INFO -a config=phpbb3 -a url=http://www.raspberrypi.org/phpBB3 generic'
+    #cmd = 'scrapy crawl -L INFO -a config=phpbb3.0.x generic -s JOBDIR=crawls/generic-1'
+    #cmd = 'scrapy crawl -L INFO -a config=phpbb3.0.x generic'
+    #cmd = 'scrapy crawl -L DEBUG -a config=phpbb3.0.x.test generic'
+    cmd = 'scrapy crawl -L INFO -a config=qnap generic'
     execute(cmd.split())
 
 

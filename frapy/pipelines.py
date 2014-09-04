@@ -14,9 +14,9 @@ import ipdb
 from collections import defaultdict
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from scrapy import log, signals
+from scrapy import log #, signals
 from scrapy.item import Field, Item
-from scrapy.xlib.pydispatch import dispatcher
+#from scrapy.xlib.pydispatch import dispatcher
 
 from frapy.items import *
 from frapy.models import *
@@ -31,16 +31,17 @@ class SqlAlchemyPipeline:
         create_table(engine)
         session_factory = sessionmaker(bind=engine)
         self.Session = scoped_session(session_factory)
-        dispatcher.connect(self.spider_opened, signals.spider_opened)
+        #dispatcher.connect(self.spider_opened, signals.spider_opened)
 
-    def spider_opened(self, spider):
+    #def spider_opened(self, spider):
+    #    pass
         # Check whether we are resuming a session, else do nothing!
-        if spider.state:
-            for user in spider.state['user_cache'].values():
-                if not user._db_item: #Then it has not been processed yet, so do it anyways!
-                    user._db_item = DbUser(**user)
-                user._db_item = self.Session().merge(user._db_item)
-                self.Session.remove()
+        # if spider.state:
+        #     for user in spider.state['user_cache'].values():
+        #         if not user._db_item: #Then it has not been processed yet, so do it anyways!
+        #             user._db_item = DbUser(**user)
+        #         user._db_item = self.Session().merge(user._db_item)
+        #         self.Session.remove()
 
     def process_item(self, item, spider):
         clazz = eval('Db{0}'.format(item.__class__.__name__))
@@ -58,6 +59,7 @@ class SqlAlchemyPipeline:
             db_session.commit()
             item._db_item = db_item
         except Exception as e:
+            ipdb.set_trace()
             print "message = %s" % e.message
             db_session.rollback()
         finally:
@@ -65,19 +67,3 @@ class SqlAlchemyPipeline:
     
     def close_spider(self, spider):
         self.Session.close()
-
-class StdoutPipeline:
-    def open_spider(self, spider):
-        pass
-    
-    def process_item(self, item, spider):
-        #print item
-        #serializer = item.fields[field].get('serializer')
-        #serializer(value) if serializer else value
-        for field in item.fields.keys():
-            value = item.get(field, '')
-            serializer = item.fields[field].get('serializer')
-            print '{0}: {1}'.format(field, serializer(value) if serializer else value)
-        
-    def close_spider(self, spider):
-        pass

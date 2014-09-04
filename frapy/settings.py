@@ -20,7 +20,7 @@ ITEM_PIPELINES = {
 	'frapy.pipelines.SqlAlchemyPipeline' : 2
 }
 
-#Sql alchemy database config
+# Sql alchemy database config
 # DATABASE = {
 # 	'drivername' : 'sqlite',
 # 	'username' : None,
@@ -29,11 +29,12 @@ ITEM_PIPELINES = {
 # 	'port' : None,
 # 	'database' : 'scraped/forums.db'
 # }
+
 DATABASE = {
 	'drivername' : 'mysql',
 	'username' : 'root',
 	'password' : 'tot48rom',
-	'host' : 'localhost',
+	'host' : 'ubuntu-vm',
 	'port' : '3306',
 	'database' : 'frapy'
 }

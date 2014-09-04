@@ -15,18 +15,16 @@ Created on 10 jan. 2013
 
 '''
 
-import re
-import os.path
 from abc import ABCMeta, abstractmethod
 from urlparse import urlparse
 from collections import defaultdict
-from config import Config
 
 from frapy.items import Post, User, Forum, Category, Thread
+from frapy.conf import ConfigValidator, ConfigLoader
 from util import *
 
 from scrapy import log, signals
-from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
+from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy.http.request import Request
 from scrapy.http.response import Response
 from scrapy.spider import Spider
@@ -46,24 +44,14 @@ class BaseForumSpider(Spider):
     
     name = 'base'
 
-    def __init__(self, template=None, url=None):
-        assert url, "Geen geldige start url opgegeven"
-        assert template, "Geen configuratie bestand opgegeven"
-        self.config = self._load_config(template)
-        self.url = url
-    
-    def _load_config(self, template):
-        template_path = "tpl/{0}.tpl".format(template)
-        assert os.path.isfile(template_path), "Configuratie bestand '{0}' niet aanwezig".format(template_path)
-        config = dict(Config(template_path))
-        if config.has_key('base'):
-            return _load_config(config['base']).update(config)
-        else:
-            return config
-
+    def __init__(self, config=None, **kwargs):
+        assert config, "Geen configuratie opgegeven"
+        self.config = ConfigLoader.load(config, **kwargs)
+        ConfigValidator.validate(self.config)
 
     def start_requests(self):
-        return [Request(self.url, callback=self.parse_forum), Request(self.url, callback=self.parse_forum)]
+        #return [Request(self.config['url'], callback=self.parse_forum)]
+        return []
     
     @abstractmethod
     def parse_forum(self, response):
@@ -87,25 +75,25 @@ class GenericForumSpider(BaseForumSpider):
             self.state = defaultdict(dict)
 
     def _extract_links(self, response, conf):
-        assert conf.get('xpath') or conf.get('regex'), "Type extractie is geen 'regex' of 'xpath'"
-        if conf.get('xpath'):
-            return SgmlLinkExtractor(restrict_xpaths=conf['xpath']).extract_links(response)
-        else:
+        if conf.startswith('xpath:'):
+            return LinkExtractor(restrict_xpaths=conf[6:]).extract_links(response)
+        elif conf.startswith('regex:'):
             raise NotImplementedError("Regex link extractie nog niet geimplementeerd")
+        else:
+            raise NotImplementedError("Extractieprotocol niet geimplementeerd")
 
     def _extract_blocks(self, response, conf):
-        assert conf.get('xpath') or conf.get('regex'), "Type extractie is geen 'regex' of 'xpath'"
-        if conf.get('xpath'):
-            return Selector(response).xpath(conf['xpath'])
-        else: #TOFIX
+        if conf.startswith('xpath:'):
+            return response.selector.xpath(conf[6:])
+        elif conf.startswith('regex:'):
             raise NotImplementedError("Regex link extractie nog niet geimplementeerd")
+        else:
+            raise NotImplementedError("Extractieprotocol niet geimplementeerd")
 
     def _extract_attribute(self, inp, conf):
-        assert conf.get('xpath') or conf.get('regex'), "Type extractie is geen 'regex' of 'xpath'"
-        assert isinstance(inp, Response) or isinstance(inp, Selector), "Onbekende input gegeven bij attribuut extractie"
-        if conf.get('xpath'):
-            selector = inp if isinstance(inp, Selector) else Selector(inp)
-            return xpath2text(selector, conf['xpath'])
+        if conf.startswith('xpath:'):
+            selector = inp if isinstance(inp, Selector) else inp.selector
+            return xpath2text(selector, conf[6:])
         else: #TOFIX
             raise NotImplementedError("Regex link extractie nog niet geimplementeerd")
 
@@ -113,10 +101,8 @@ class GenericForumSpider(BaseForumSpider):
     def parse_forum(self, response):
         """ Parses a forum main page"""
 
-        #if not self.state:
-
         log.msg("Parsing FORUM '{0}'".format(response.url), level=log.DEBUG)
-        forum = Forum(domain=urlparse(self.url).hostname)
+        forum = Forum(domain=urlparse(response.url).hostname)
         yield forum
         
         categories = self._extract_links(response, self.config['forum']['category'])
@@ -131,7 +117,7 @@ class GenericForumSpider(BaseForumSpider):
         """ Parses a forum category page """
         log.msg("Parsing CATEGORY '{0}'".format(response.url), level=log.DEBUG)
 
-        #If not previously extracted, extract category
+        #Check whether we are continuing an already parsed category
         category = response.meta.get('myself')
         if not category: #Then it is the first time we encounter it, so extract :-)!
             attributes = self.config['category']['attributes']
@@ -150,7 +136,7 @@ class GenericForumSpider(BaseForumSpider):
                     yield Request(url=subcategory.url,
                                   callback=self.parse_category,
                                   meta=dict(parent=category,
-                                            forum=category.get('forum_ref')))
+                                            forum=category._refs['forum']))
 
         # Extract all threads present on current category page
         threads = self._extract_links(response, self.config['category']['thread'])
@@ -174,7 +160,7 @@ class GenericForumSpider(BaseForumSpider):
 
         log.msg("Parsing THREAD '{0}'".format(response.url), level=log.DEBUG)
 
-        #ipdb.set_trace()
+        #Check whether we are continuing an already parsed thread
         thread = response.meta.get('myself')
         if not thread: #Then it is the first time we encounter it, so extract :-)!
             attributes = self.config['thread']['attributes']
@@ -183,10 +169,7 @@ class GenericForumSpider(BaseForumSpider):
             thread._refs['category'] = response.meta.get('category')
             yield thread
 
-        # Parse all posts/users on thread page and add items to item buffer
-        #ipdb.set_trace()
-        #ipdb.set_trace = self._after_open
-
+        # Parse all posts/users on current thread
         posts = self._extract_blocks(response, self.config['thread']['post'])
         if posts:
             log.msg("Extracted %d posts from thread '%s'" % (len(posts), thread['title']), level=log.INFO)
@@ -213,12 +196,6 @@ class GenericForumSpider(BaseForumSpider):
                 post._refs['user'] = user
                 yield post
 
-            #if user_nickname == 'saiello':
-            #    ipdb.set_trace()
-            #print '%s | %s | %s' % (thread['title'], user['nickname'], str(post_timestamp))
-            
-            #yield post
-        
         # Extract possible next page of current thread and append to request buffer
         if self.config['thread'].get('next'):
             for next_page in self._extract_links(response, self.config['thread']['next']):  # which can only be 1

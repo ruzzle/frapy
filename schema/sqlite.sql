@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS forums (forum_id INTEGER PRIMARY KEY AUTOINCREMENT,
                                    
 CREATE TABLE IF NOT EXISTS categories (category_id INTEGER PRIMARY KEY AUTOINCREMENT,
                                        forum_id INTEGER NOT NULL,
-                                       parent_id INTEGER,
+                                       parent_id INTEGER DEFAULT -1,
                                        title TEXT NOT NULL,
                                        url TEXT NOT NULL);
                                        
